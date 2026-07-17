@@ -39,8 +39,12 @@ export function OnboardingPage() {
   }
 
   async function handleSignOut() {
-    await signOut()
-    navigate('/login')
+    try {
+      await signOut()
+      navigate('/login')
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : 'ไม่สามารถออกจากระบบได้ กรุณาลองใหม่')
+    }
   }
 
   return (

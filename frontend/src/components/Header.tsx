@@ -1,33 +1,50 @@
-import { useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { useDashboardContext } from '../hooks/useDashboardContext'
 import { signOut } from '../services/auth'
 
 export function Header() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useAuth()
-  const fullName = typeof user?.user_metadata.full_name === 'string' ? user.user_metadata.full_name : 'ผู้ใช้งาน'
+  const { data, error: contextError, isLoading } = useDashboardContext()
+  const [signOutError, setSignOutError] = useState('')
+  const metadataName = typeof user?.user_metadata.full_name === 'string' ? user.user_metadata.full_name : ''
+  const fullName = data?.userName || metadataName || user?.email || 'ผู้ใช้งาน'
   const initials = fullName.slice(0, 2).toUpperCase()
+  const isProductsPage = location.pathname === '/products'
 
   async function handleSignOut() {
-    await signOut()
-    navigate('/login')
+    setSignOutError('')
+
+    try {
+      await signOut()
+      navigate('/login')
+    } catch (caughtError) {
+      setSignOutError(caughtError instanceof Error ? caughtError.message : 'ไม่สามารถออกจากระบบได้ กรุณาลองใหม่')
+    }
   }
 
   return (
     <header className="header">
       <div>
-        <p className="eyebrow">ภาพรวม</p>
-        <h1>แดชบอร์ด</h1>
+        <p className="eyebrow">{isProductsPage ? 'ข้อมูลหลัก' : 'ภาพรวม'}</p>
+        <h1>{isProductsPage ? 'สินค้า' : 'แดชบอร์ด'}</h1>
       </div>
       <div className="header-actions">
         <button className="branch-switcher" type="button" aria-label="Change active branch">
           <span className="branch-icon" aria-hidden="true">⌂</span>
-          <span><strong>พื้นที่ธุรกิจ</strong><small>เลือกสาขาใน Sprint ถัดไป</small></span>
+          <span>
+            <strong>{isLoading ? 'กำลังโหลดข้อมูล…' : data?.businessName || 'ไม่พบข้อมูลธุรกิจ'}</strong>
+            <small>{isLoading ? 'กรุณารอสักครู่' : data?.branchName || 'ไม่พบข้อมูลสาขา'}</small>
+          </span>
           <span aria-hidden="true">⌄</span>
         </button>
         <span className="user-name">{fullName}</span>
         <button className="avatar" type="button" aria-label="ข้อมูลผู้ใช้งาน">{initials}</button>
         <button className="signout-button" onClick={() => void handleSignOut()} type="button">ออกจากระบบ</button>
+        {(contextError || signOutError) && <span className="header-error" role="alert">{signOutError || contextError}</span>}
       </div>
     </header>
   )

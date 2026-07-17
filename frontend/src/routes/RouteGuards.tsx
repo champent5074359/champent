@@ -38,7 +38,7 @@ export function WorkspaceGate() {
     return <main className="route-error" role="alert">{error}</main>
   }
 
-  return <Navigate to={hasWorkspace ? '/dashboard' : '/setup'} replace />
+  return <Navigate to={hasWorkspace ? '/dashboard' : '/onboarding'} replace />
 }
 
 export function RedirectIfWorkspaceExists({ children }: { children: ReactNode }) {

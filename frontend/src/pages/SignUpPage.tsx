@@ -35,7 +35,7 @@ export function SignUpPage() {
       const { session } = await signUp(fullName.trim(), email, password)
 
       if (session) {
-        navigate('/setup')
+        navigate('/onboarding')
         return
       }
 
