@@ -10,15 +10,23 @@
 
 ## Sprint 2 — Data Foundation
 
-- [ ] Initialize the React + TypeScript frontend
-- [ ] Create the Supabase project and local configuration
-- [ ] Implement PostgreSQL schema and migrations
-- [ ] Add row-level security design and policies
-- [ ] Create seed data for a sample business and branch
+- [x] Initialize the React + TypeScript frontend
+- [x] Create the Supabase project and local configuration
+- [x] Design the first PostgreSQL schema and migration
+- [x] Design row-level security policies for the core organization tables
+- [ ] Apply the reviewed migration to the Supabase project
+
+## Sprint 4 — Authentication and Core Database
+
+- [x] Connect login, signup, signout, session loading, and auth-state changes to Supabase Auth
+- [x] Add protected routes and a workspace gate
+- [x] Add first-time business and branch setup
+- [x] Create the first core-database SQL migration with RLS policies
+- [ ] Review and run the migration in Supabase SQL Editor
+- [ ] Test signup, email confirmation, login, onboarding, signout, and RLS access against the target project
 
 ## Future Backlog
 
-- [ ] User authentication and role-based permissions
 - [ ] Product, category, and inventory management
 - [ ] Sales and point-of-sale workflow
 - [ ] Income, expense, supplier, and purchase management

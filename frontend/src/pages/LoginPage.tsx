@@ -1,5 +1,6 @@
-import { FormEvent, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import type { FormEvent } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Logo } from '../components/Logo'
 import { signInWithPassword } from '../services/auth'
 import { isSupabaseConfigured } from '../services/supabase'
@@ -23,7 +24,7 @@ export function LoginPage() {
     setIsSubmitting(true)
     try {
       await signInWithPassword(email, password)
-      navigate('/dashboard')
+      navigate('/workspace')
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : 'ไม่สามารถเข้าสู่ระบบได้ กรุณาลองใหม่')
     } finally {
@@ -36,13 +37,13 @@ export function LoginPage() {
       <section className="login-panel" aria-labelledby="login-heading">
         <Logo />
         <div className="login-copy">
-          <p className="eyebrow">Welcome back</p>
+          <p className="eyebrow">ยินดีต้อนรับกลับ</p>
           <h1 id="login-heading">จัดการธุรกิจของคุณ<br />ในที่เดียว</h1>
           <p>เข้าสู่ระบบเพื่อดูภาพรวมยอดขาย สต็อก และการดำเนินงานของทุกสาขา</p>
         </div>
         <form className="login-form" onSubmit={handleSubmit}>
           <label>
-            Email
+            อีเมล
             <input
               autoComplete="email"
               onChange={(event) => setEmail(event.target.value)}
@@ -53,7 +54,7 @@ export function LoginPage() {
             />
           </label>
           <label>
-            Password
+            รหัสผ่าน
             <input
               autoComplete="current-password"
               onChange={(event) => setPassword(event.target.value)}
@@ -65,22 +66,23 @@ export function LoginPage() {
           </label>
           {error && <p className="form-error" role="alert">{error}</p>}
           <button className="primary-button" disabled={isSubmitting} type="submit">
-            {isSubmitting ? 'กำลังเข้าสู่ระบบ…' : 'Login'}
+            {isSubmitting ? 'กำลังเข้าสู่ระบบ…' : 'เข้าสู่ระบบ'}
           </button>
         </form>
+        <p className="auth-switch">ยังไม่มีบัญชี? <Link to="/signup">สร้างบัญชี</Link></p>
         <p className="login-footer">BusinessOS · ระบบหลังบ้านสำหรับธุรกิจของคุณ</p>
       </section>
       <aside className="login-aside" aria-hidden="true">
         <div className="login-orb orb-one" />
         <div className="login-orb orb-two" />
         <div className="insight-card insight-card-main">
-          <span>ยอดขายวันนี้</span>
-          <strong>฿24,580</strong>
-          <small>↗ 12.5% จากเมื่อวาน</small>
+          <span>BusinessOS</span>
+          <strong>พร้อมเริ่มต้น</strong>
+          <small>จัดการทุกสาขาในที่เดียว</small>
         </div>
         <div className="insight-card insight-card-mini">
-          <span>สินค้าคงเหลือ</span>
-          <strong>1,248</strong>
+          <span>ข้อมูลธุรกิจ</span>
+          <strong>ปลอดภัย</strong>
         </div>
       </aside>
     </main>

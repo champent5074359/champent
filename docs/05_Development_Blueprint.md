@@ -85,3 +85,35 @@ frontend/
 ### Sprint 3 boundary
 
 The visual foundation and integration boundary are implemented, but no Supabase project, user account, database migration, row-level security policy, or live business data has been created. Authentication becomes live after valid Supabase credentials and Auth configuration are supplied.
+
+## 9. Sprint 4 Authentication and Core Database
+
+Sprint 4 connects the application to Supabase Auth and establishes the first organization schema. The application is no longer allowed to use a dashboard without a valid Supabase session.
+
+### Authentication flow
+
+```text
+Sign up → (confirm email when required) → Sign in → Workspace gate
+  → no active business membership: first-time setup
+  → active business membership: dashboard
+```
+
+- `AuthProvider` initializes state from `getSession` and keeps it current with `onAuthStateChange`.
+- Login uses `signInWithPassword`; registration uses `signUp`; the header and first-time setup include `signOut`.
+- Public-only routes redirect signed-in users to the workspace gate.
+- Protected routes redirect signed-out users to Login.
+- The first-time setup calls one protected Supabase RPC to create a business, owner membership, first branch, and branch assignment atomically.
+
+### Core migration and security
+
+`database/migrations/20260717_001_auth_and_core_database.sql` defines `profiles`, `businesses`, `business_members`, `branches`, and `branch_members`, plus timestamp triggers, the Auth-user profile trigger, integrity checks, RLS helper functions, RLS policies, and `create_business_with_owner`.
+
+The migration is intentionally not applied automatically. It must be reviewed and run in the target Supabase project before the onboarding screen can create data. The frontend uses only `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`; privileged keys never belong in the frontend.
+
+### Architecture review additions
+
+- Business types are standardized as `food`, `fashion`, `retail`, `service`, `manufacturing`, `warehouse`, and `other`.
+- Every core table includes creator/updater audit references and soft-delete metadata.
+- Profiles include locale, preferred language, last-login, and last-seen timestamps.
+- Businesses include owner and contact details; branches support latitude and longitude.
+- Active-record unique indexes and RLS filters exclude soft-deleted rows while preserving the original membership and branch-access rules.

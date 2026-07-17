@@ -1,9 +1,9 @@
 import { StatCard } from '../components/StatCard'
 
 const nextSteps = [
-  ['Products', 'เริ่มสร้างสินค้าและหมวดหมู่ของคุณ'],
-  ['Inventory', 'กำหนดสต็อกเริ่มต้นสำหรับแต่ละสาขา'],
-  ['Sales', 'บันทึกรายการขายครั้งแรก'],
+  ['สินค้า', 'เริ่มสร้างสินค้าและหมวดหมู่ของคุณ'],
+  ['สต็อก', 'กำหนดสต็อกเริ่มต้นสำหรับแต่ละสาขา'],
+  ['การขาย', 'บันทึกรายการขายครั้งแรก'],
 ]
 
 export function DashboardPage() {
@@ -18,17 +18,17 @@ export function DashboardPage() {
       </section>
 
       <section className="stat-grid" aria-label="Business overview">
-        <StatCard change="พร้อมตั้งค่า" label="ยอดขายวันนี้" trend="neutral" value="฿0.00" />
-        <StatCard change="ยังไม่มีรายการ" label="คำสั่งซื้อ" trend="neutral" value="0" />
+        <StatCard change="พร้อมเชื่อมข้อมูล" label="ยอดขายวันนี้" trend="neutral" value="—" />
+        <StatCard change="พร้อมเชื่อมข้อมูล" label="คำสั่งซื้อ" trend="neutral" value="—" />
         <StatCard change="ติดตามใน Sprint ถัดไป" label="สต็อกต่ำ" trend="warning" value="0 รายการ" />
-        <StatCard change="พร้อมใช้งาน" label="สาขาที่ใช้งาน" trend="positive" value="1" />
+        <StatCard change="ข้อมูลจริงจะเชื่อมใน Sprint ถัดไป" label="สาขาที่ใช้งาน" trend="positive" value="—" />
       </section>
 
       <section className="dashboard-grid">
         <article className="dashboard-card setup-card">
           <div className="card-heading">
             <div>
-              <p className="eyebrow">Getting started</p>
+              <p className="eyebrow">เริ่มต้นใช้งาน</p>
               <h3>เตรียม BusinessOS ของคุณ</h3>
             </div>
             <span className="progress-pill">0 / 3 เสร็จสิ้น</span>
@@ -44,10 +44,10 @@ export function DashboardPage() {
           </ol>
         </article>
         <article className="dashboard-card branch-card">
-          <p className="eyebrow">Active workspace</p>
-          <h3>BusinessOS Demo</h3>
-          <p className="branch-copy">Main Branch · กรุงเทพฯ</p>
-          <div className="branch-status"><span /> ระบบพร้อมสำหรับการตั้งค่า</div>
+          <p className="eyebrow">พื้นที่ธุรกิจ</p>
+          <h3>ตั้งค่าธุรกิจเรียบร้อยแล้ว</h3>
+          <p className="branch-copy">ข้อมูลสาขาจริงจะถูกแสดงในหน้าจอนี้ใน Sprint ถัดไป</p>
+          <div className="branch-status"><span /> บัญชีของคุณเข้าสู่ระบบแล้ว</div>
         </article>
       </section>
     </div>

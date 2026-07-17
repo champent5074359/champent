@@ -32,6 +32,9 @@ button { cursor: pointer; }
 .primary-button:hover:not(:disabled) { background: #1d4ed8; transform: translateY(-1px); }
 .primary-button:disabled { cursor: wait; opacity: .65; }
 .form-error { background: #fef3f2; border-radius: .5rem; color: #b42318; font-size: .86rem; line-height: 1.45; margin: 0; padding: .7rem .8rem; }
+.form-success { background: #ecfdf3; border-radius: .5rem; color: #027a48; font-size: .86rem; line-height: 1.45; margin: 0; padding: .7rem .8rem; }
+.auth-switch { color: #667085; font-size: .86rem; margin: 1.2rem 0 0; text-align: center; }
+.auth-switch a { color: #1d4ed8; font-weight: 700; text-decoration: none; }
 .login-footer { color: #98a2b3; font-size: .78rem; margin: 3.25rem 0 0; }
 .login-aside { background: linear-gradient(145deg, #1549c8 0%, #2563eb 48%, #62a4ff 100%); overflow: hidden; position: relative; }
 .login-orb { background: rgba(255,255,255,.11); border-radius: 50%; filter: blur(1px); position: absolute; }
@@ -66,6 +69,9 @@ button { cursor: pointer; }
 .branch-switcher small { color: #98a2b3; margin-top: .1rem; }
 .branch-icon { color: #2563eb; font-size: 1.1rem; }
 .avatar { background: #dbeafe; border: 0; border-radius: 50%; color: #1d4ed8; font-size: .72rem; font-weight: 800; height: 2.3rem; width: 2.3rem; }
+.user-name { color: #475467; font-size: .8rem; max-width: 8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.signout-button, .text-button { background: transparent; border: 0; color: #475467; font-size: .78rem; font-weight: 650; padding: .4rem; }
+.signout-button:hover, .text-button:hover { color: #1d4ed8; }
 .page-content { padding: clamp(1.25rem, 3vw, 2.5rem); }
 .dashboard-page { margin: 0 auto; max-width: 76rem; }
 .welcome-row { align-items: flex-start; display: flex; justify-content: space-between; margin-bottom: 2rem; }
@@ -99,6 +105,26 @@ button { cursor: pointer; }
 .branch-status { align-items: center; color: #475467; display: flex; font-size: .78rem; gap: .45rem; }
 .branch-status span { background: #12b76a; border-radius: 50%; height: .5rem; width: .5rem; }
 
+/* First-time workspace setup */
+.setup-page { align-items: center; background: linear-gradient(145deg, #f6f8fc 0%, #eff6ff 100%); display: flex; justify-content: center; min-height: 100vh; padding: 1.5rem; }
+.setup-panel { background: #fff; border: 1px solid #e7eaf0; border-radius: 1rem; box-shadow: 0 20px 55px rgba(16,24,40,.08); max-width: 38rem; padding: clamp(1.5rem, 5vw, 3rem); width: 100%; }
+.setup-topbar { align-items: center; display: flex; justify-content: space-between; }
+.setup-copy { margin: 3rem 0 2rem; }
+.setup-copy h1 { color: #101828; font-size: clamp(1.75rem, 4vw, 2.25rem); letter-spacing: -.055em; margin: 0; }
+.setup-copy p:last-child { color: #667085; line-height: 1.6; margin: .75rem 0 0; }
+.setup-form { display: grid; gap: 1.25rem; }
+.setup-form > label, .setup-form fieldset { color: #344054; display: grid; font-size: .9rem; font-weight: 650; gap: .5rem; }
+.setup-form fieldset { border: 0; margin: 0; padding: 0; }
+.setup-form legend { margin-bottom: .5rem; padding: 0; }
+.setup-form input { border: 1px solid #d0d5dd; border-radius: .65rem; color: #172033; outline: none; padding: .82rem .9rem; }
+.setup-form input:focus { border-color: #5790f6; box-shadow: 0 0 0 4px #dbeafe; }
+.business-type-grid { display: grid; gap: .65rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.business-type-option { align-items: center; border: 1px solid #d0d5dd; border-radius: .65rem; color: #475467; cursor: pointer; display: flex; font-size: .84rem; font-weight: 600; gap: .5rem; padding: .78rem; }
+.business-type-option.selected { background: #eff6ff; border-color: #5790f6; color: #1d4ed8; }
+.business-type-option input { accent-color: #2563eb; box-shadow: none; margin: 0; padding: 0; }
+.route-loading, .route-error { align-items: center; background: #f6f8fc; color: #475467; display: flex; justify-content: center; min-height: 100vh; padding: 1.5rem; text-align: center; }
+.route-error { color: #b42318; }
+
 @media (max-width: 900px) {
   .login-page { grid-template-columns: 1fr; }
   .login-aside { display: none; }
@@ -116,6 +142,7 @@ button { cursor: pointer; }
   .login-panel { padding: 2rem 1.4rem; }
   .login-copy { margin-top: 3.6rem; }
   .header { padding: .8rem 1rem; }
+  .user-name, .signout-button { display: none; }
   .branch-switcher strong, .branch-switcher small { display: none; }
   .page-content { padding: 1.1rem; }
   .welcome-row { gap: 1rem; }
