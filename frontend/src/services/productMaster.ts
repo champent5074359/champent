@@ -20,6 +20,7 @@ export type ProductRecord = {
   category_id: string | null
   category_name: string | null
   cost_price: number
+  created_at: string
   description: string | null
   id: string
   is_active: boolean
@@ -111,11 +112,11 @@ export function translateProductMasterError(error: unknown) {
   }
 
   if (combined.includes('products_unique_active_sku')) {
-    return 'SKU นี้ถูกใช้แล้วในธุรกิจนี้'
+    return 'SKU นี้ถูกใช้แล้ว'
   }
 
   if (combined.includes('products_unique_active_barcode')) {
-    return 'Barcode นี้ถูกใช้แล้วในธุรกิจนี้'
+    return 'Barcode นี้ถูกใช้แล้ว'
   }
 
   if (combined.includes('product_categories_unique_active_name')) {
@@ -167,7 +168,7 @@ export async function loadProductMasterData(businessId: string): Promise<Product
       .order('name', { ascending: true }),
     client
       .from('products')
-      .select('id, category_id, unit_id, name, sku, barcode, description, cost_price, selling_price, track_stock, low_stock_threshold, is_active')
+      .select('id, category_id, unit_id, name, sku, barcode, description, cost_price, selling_price, track_stock, low_stock_threshold, is_active, created_at')
       .eq('business_id', businessId)
       .eq('is_deleted', false)
       .order('name', { ascending: true }),
@@ -273,17 +274,23 @@ export async function softDeleteProduct(businessId: string, productId: string) {
 
 export async function createCategory(businessId: string, input: CategoryInput) {
   const client = requireSupabase()
-  const { error } = await client.from('product_categories').insert({
-    business_id: businessId,
-    description: cleanOptional(input.description),
-    is_active: input.isActive,
-    name: input.name.trim(),
-    sort_order: input.sortOrder,
-  })
+  const { data, error } = await client
+    .from('product_categories')
+    .insert({
+      business_id: businessId,
+      description: cleanOptional(input.description),
+      is_active: input.isActive,
+      name: input.name.trim(),
+      sort_order: input.sortOrder,
+    })
+    .select('id, name, description, sort_order, is_active')
+    .single()
 
   if (error) {
     throw new Error(translateProductMasterError(error))
   }
+
+  return data as ProductCategory
 }
 
 export async function updateCategory(businessId: string, categoryId: string, input: CategoryInput) {
@@ -326,16 +333,22 @@ export async function softDeleteCategory(businessId: string, categoryId: string)
 
 export async function createUnit(businessId: string, input: UnitInput) {
   const client = requireSupabase()
-  const { error } = await client.from('units').insert({
-    abbreviation: cleanOptional(input.abbreviation),
-    business_id: businessId,
-    is_active: input.isActive,
-    name: input.name.trim(),
-  })
+  const { data, error } = await client
+    .from('units')
+    .insert({
+      abbreviation: cleanOptional(input.abbreviation),
+      business_id: businessId,
+      is_active: input.isActive,
+      name: input.name.trim(),
+    })
+    .select('id, name, abbreviation, is_active')
+    .single()
 
   if (error) {
     throw new Error(translateProductMasterError(error))
   }
+
+  return data as ProductUnit
 }
 
 export async function updateUnit(businessId: string, unitId: string, input: UnitInput) {

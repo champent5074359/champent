@@ -26,6 +26,10 @@ import type {
 } from '../services/productMaster'
 import { formatCurrency } from '../utils/formatters'
 
+type ProductSort = 'name' | 'newest' | 'price-asc' | 'price-desc'
+type ProductStatusFilter = 'all' | 'active' | 'inactive'
+type StockTrackingFilter = 'all' | 'tracked' | 'untracked'
+
 export function ProductsPage() {
   const { data: workspace, error: workspaceError, isLoading: isWorkspaceLoading } = useDashboardContext()
   const [categories, setCategories] = useState<ProductCategory[]>([])
@@ -33,6 +37,9 @@ export function ProductsPage() {
   const [products, setProducts] = useState<ProductRecord[]>([])
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState<ProductStatusFilter>('all')
+  const [stockFilter, setStockFilter] = useState<StockTrackingFilter>('all')
+  const [sortBy, setSortBy] = useState<ProductSort>('name')
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState('')
@@ -70,15 +77,27 @@ export function ProductsPage() {
 
   const filteredProducts = useMemo(() => {
     const normalizedSearch = search.trim().toLocaleLowerCase('th')
-    return products.filter((product) => {
+    const matchingProducts = products.filter((product) => {
       const matchesCategory = !categoryFilter || product.category_id === categoryFilter
       const matchesSearch = !normalizedSearch || [product.name, product.sku ?? '', product.barcode ?? '']
         .some((value) => value.toLocaleLowerCase('th').includes(normalizedSearch))
-      return matchesCategory && matchesSearch
+      const matchesStatus = statusFilter === 'all'
+        || (statusFilter === 'active' ? product.is_active : !product.is_active)
+      const matchesStock = stockFilter === 'all'
+        || (stockFilter === 'tracked' ? product.track_stock : !product.track_stock)
+      return matchesCategory && matchesSearch && matchesStatus && matchesStock
     })
-  }, [categoryFilter, products, search])
+
+    return [...matchingProducts].sort((left, right) => {
+      if (sortBy === 'newest') return Date.parse(right.created_at) - Date.parse(left.created_at)
+      if (sortBy === 'price-asc') return Number(left.selling_price) - Number(right.selling_price)
+      if (sortBy === 'price-desc') return Number(right.selling_price) - Number(left.selling_price)
+      return left.name.localeCompare(right.name, 'th', { sensitivity: 'base' })
+    })
+  }, [categoryFilter, products, search, sortBy, statusFilter, stockFilter])
 
   function openCreateProduct() {
+    if (isProductFormOpen || isSaving) return
     setEditingProduct(null)
     setIsProductFormOpen(true)
     setError('')
@@ -86,6 +105,7 @@ export function ProductsPage() {
   }
 
   function openEditProduct(product: ProductRecord) {
+    if (isProductFormOpen || isSaving) return
     setEditingProduct(product)
     setIsProductFormOpen(true)
     setError('')
@@ -113,8 +133,43 @@ export function ProductsPage() {
     }
   }
 
+  async function handleCreateCategoryFromProduct(name: string) {
+    if (!workspace?.businessId) throw new Error('ไม่พบธุรกิจปัจจุบัน')
+    setIsSaving(true)
+    try {
+      const created = await createCategory(workspace.businessId, {
+        description: '',
+        isActive: true,
+        name,
+        sortOrder: 0,
+      })
+      setCategories((current) => [...current, created].sort((left, right) => (
+        left.sort_order - right.sort_order || left.name.localeCompare(right.name, 'th')
+      )))
+      return created
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  async function handleCreateUnitFromProduct(name: string, abbreviation: string) {
+    if (!workspace?.businessId) throw new Error('ไม่พบธุรกิจปัจจุบัน')
+    setIsSaving(true)
+    try {
+      const created = await createUnit(workspace.businessId, {
+        abbreviation,
+        isActive: true,
+        name,
+      })
+      setUnits((current) => [...current, created].sort((left, right) => left.name.localeCompare(right.name, 'th')))
+      return created
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   async function handleDeleteProduct(product: ProductRecord) {
-    if (!workspace?.businessId || !window.confirm(`ต้องการลบสินค้า “${product.name}” หรือไม่? ข้อมูลจะถูกซ่อนแบบ Soft Delete`)) {
+    if (isSaving || !workspace?.businessId || !window.confirm(`ต้องการลบสินค้า “${product.name}” หรือไม่? ข้อมูลจะถูกซ่อนแบบ Soft Delete`)) {
       return
     }
 
@@ -206,7 +261,7 @@ export function ProductsPage() {
           <h2>สินค้า</h2>
           <p>จัดการข้อมูลสินค้า หมวดหมู่ และหน่วยนับของ {workspace.businessName}</p>
         </div>
-        {canManage && <button className="primary-button" onClick={openCreateProduct} type="button">+ เพิ่มสินค้า</button>}
+        {canManage && <button className="primary-button" disabled={isProductFormOpen || isSaving} onClick={openCreateProduct} type="button">+ เพิ่มสินค้า</button>}
       </section>
 
       {!canManage && <p className="permission-notice">บัญชี staff สามารถดูข้อมูลสินค้าได้อย่างเดียว</p>}
@@ -218,16 +273,43 @@ export function ProductsPage() {
           <span aria-hidden="true">⌕</span>
           <input onChange={(event) => setSearch(event.target.value)} placeholder="ค้นหาจากชื่อ SKU หรือ Barcode" type="search" value={search} />
         </label>
-        <label className="filter-field">
-          <span>หมวดหมู่</span>
-          <select onChange={(event) => setCategoryFilter(event.target.value)} value={categoryFilter}>
-            <option value="">ทั้งหมด</option>
-            {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-          </select>
-        </label>
         <div className="master-buttons">
           <button className="secondary-button" onClick={() => setIsCategoryManagerOpen(true)} type="button">จัดการหมวดหมู่</button>
           {canManage && <button className="secondary-button" onClick={() => setIsUnitManagerOpen(true)} type="button">จัดการหน่วยนับ</button>}
+        </div>
+        <div className="product-filter-grid">
+          <label className="filter-field">
+            <span>หมวดหมู่</span>
+            <select onChange={(event) => setCategoryFilter(event.target.value)} value={categoryFilter}>
+              <option value="">ทั้งหมด</option>
+              {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+            </select>
+          </label>
+          <label className="filter-field">
+            <span>สถานะ</span>
+            <select onChange={(event) => setStatusFilter(event.target.value as ProductStatusFilter)} value={statusFilter}>
+              <option value="all">ทั้งหมด</option>
+              <option value="active">เปิดใช้งาน</option>
+              <option value="inactive">ปิดใช้งาน</option>
+            </select>
+          </label>
+          <label className="filter-field">
+            <span>ติดตามสต๊อก</span>
+            <select onChange={(event) => setStockFilter(event.target.value as StockTrackingFilter)} value={stockFilter}>
+              <option value="all">ทั้งหมด</option>
+              <option value="tracked">ติดตามสต๊อก</option>
+              <option value="untracked">ไม่ติดตามสต๊อก</option>
+            </select>
+          </label>
+          <label className="filter-field">
+            <span>เรียงตาม</span>
+            <select onChange={(event) => setSortBy(event.target.value as ProductSort)} value={sortBy}>
+              <option value="name">ชื่อสินค้า</option>
+              <option value="newest">สร้างล่าสุด</option>
+              <option value="price-asc">ราคาขายต่ำไปสูง</option>
+              <option value="price-desc">ราคาขายสูงไปต่ำ</option>
+            </select>
+          </label>
         </div>
       </section>
 
@@ -238,12 +320,12 @@ export function ProductsPage() {
           <div className="empty-state">
             <strong>{products.length === 0 ? 'ยังไม่มีสินค้า' : 'ไม่พบสินค้าที่ค้นหา'}</strong>
             <span>{products.length === 0 ? 'เริ่มต้นด้วยการเพิ่มหมวดหมู่ หน่วยนับ และสินค้าแรกของคุณ' : 'ลองเปลี่ยนคำค้นหาหรือตัวกรองหมวดหมู่'}</span>
-            {products.length === 0 && canManage && <button className="primary-button" onClick={openCreateProduct} type="button">เพิ่มสินค้าแรก</button>}
+            {products.length === 0 && canManage && <button className="primary-button" disabled={isProductFormOpen || isSaving} onClick={openCreateProduct} type="button">เพิ่มสินค้าแรก</button>}
           </div>
         ) : (
           <div className="product-table-wrap">
             <table className="product-table">
-              <thead><tr><th>ชื่อสินค้า</th><th>หมวดหมู่</th><th>SKU</th><th>หน่วย</th><th>ต้นทุน</th><th>ราคาขาย</th><th>สถานะ</th>{canManage && <th>จัดการ</th>}</tr></thead>
+              <thead><tr><th>ชื่อสินค้า</th><th>หมวดหมู่</th><th>SKU</th><th>หน่วย</th><th>ต้นทุน</th><th>ราคาขาย</th><th>สถานะ</th><th>ติดตามสต๊อก</th>{canManage && <th>จัดการ</th>}</tr></thead>
               <tbody>
                 {filteredProducts.map((product) => (
                   <tr key={product.id}>
@@ -253,7 +335,8 @@ export function ProductsPage() {
                     <td data-label="หน่วย">{product.unit_abbreviation || product.unit_name || '—'}</td>
                     <td data-label="ต้นทุน">{formatCurrency(Number(product.cost_price))}</td>
                     <td data-label="ราคาขาย">{formatCurrency(Number(product.selling_price))}</td>
-                    <td data-label="สถานะ"><span className={`status-pill ${product.is_active ? 'active' : 'inactive'}`}>{product.is_active ? 'เปิดขาย' : 'ปิดขาย'}</span></td>
+                    <td data-label="สถานะ"><span className={`status-pill ${product.is_active ? 'active' : 'inactive'}`}>{product.is_active ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}</span></td>
+                    <td data-label="ติดตามสต๊อก"><span className={`status-pill ${product.track_stock ? 'tracked' : 'untracked'}`}>{product.track_stock ? 'ติดตาม' : 'ไม่ติดตาม'}</span></td>
                     {canManage && <td data-label="จัดการ"><div className="row-actions"><button className="action-button" onClick={() => openEditProduct(product)} type="button">แก้ไข</button><button className="action-button danger" disabled={isSaving} onClick={() => void handleDeleteProduct(product)} type="button">ลบ</button></div></td>}
                   </tr>
                 ))}
@@ -268,8 +351,11 @@ export function ProductsPage() {
           categories={categories}
           isSaving={isSaving}
           onClose={() => setIsProductFormOpen(false)}
+          onCreateCategory={handleCreateCategoryFromProduct}
+          onCreateUnit={handleCreateUnitFromProduct}
           onSave={handleSaveProduct}
           product={editingProduct}
+          products={products}
           units={units}
         />
       )}
