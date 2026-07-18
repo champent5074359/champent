@@ -72,7 +72,8 @@ export function MasterDataManagerModal(props: MasterDataManagerModalProps) {
 
     try {
       if (kind === 'category') {
-        await onSaveCategory({ description: secondary, name, sortOrder }, editingId ?? undefined)
+        const category = categories.find((item) => item.id === editingId)
+        await onSaveCategory({ description: secondary, isActive: category?.is_active ?? true, name, sortOrder }, editingId ?? undefined)
       } else {
         await onSaveUnit({ abbreviation: secondary, name }, editingId ?? undefined)
       }

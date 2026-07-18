@@ -49,6 +49,7 @@ export type ProductInput = {
 
 export type CategoryInput = {
   description: string
+  isActive: boolean
   name: string
   sortOrder: number
 }
@@ -120,7 +121,7 @@ export function translateProductMasterError(error: unknown) {
   }
 
   if (combined.includes('product category is still referenced by active products')) {
-    return 'หมวดหมู่นี้ยังมีสินค้าใช้งานอยู่ กรุณาย้ายสินค้าก่อนลบ'
+    return 'หมวดหมู่นี้ยังมีสินค้าใช้งานอยู่ กรุณาย้ายสินค้าไปหมวดหมู่อื่นก่อนลบ'
   }
 
   if (combined.includes('product unit is still referenced by active products')) {
@@ -244,20 +245,15 @@ export async function updateProduct(businessId: string, productId: string, input
 
 export async function softDeleteProduct(businessId: string, productId: string) {
   const client = requireSupabase()
-  const { data, error } = await client
+  const { error } = await client
     .from('products')
     .update({ is_active: false, is_deleted: true })
     .eq('id', productId)
     .eq('business_id', businessId)
     .eq('is_deleted', false)
-    .select('id')
-    .maybeSingle()
 
   if (error) {
     throw new Error(translateProductMasterError(error))
-  }
-  if (!data) {
-    throw new Error('ไม่พบสินค้าหรือคุณไม่มีสิทธิ์ลบ')
   }
 }
 
@@ -266,6 +262,7 @@ export async function createCategory(businessId: string, input: CategoryInput) {
   const { error } = await client.from('product_categories').insert({
     business_id: businessId,
     description: cleanOptional(input.description),
+    is_active: input.isActive,
     name: input.name.trim(),
     sort_order: input.sortOrder,
   })
@@ -281,6 +278,7 @@ export async function updateCategory(businessId: string, categoryId: string, inp
     .from('product_categories')
     .update({
       description: cleanOptional(input.description),
+      is_active: input.isActive,
       name: input.name.trim(),
       sort_order: input.sortOrder,
     })
@@ -300,20 +298,15 @@ export async function updateCategory(businessId: string, categoryId: string, inp
 
 export async function softDeleteCategory(businessId: string, categoryId: string) {
   const client = requireSupabase()
-  const { data, error } = await client
+  const { error } = await client
     .from('product_categories')
     .update({ is_active: false, is_deleted: true })
     .eq('id', categoryId)
     .eq('business_id', businessId)
     .eq('is_deleted', false)
-    .select('id')
-    .maybeSingle()
 
   if (error) {
     throw new Error(translateProductMasterError(error))
-  }
-  if (!data) {
-    throw new Error('ไม่พบหมวดหมู่หรือคุณไม่มีสิทธิ์ลบ')
   }
 }
 
@@ -351,19 +344,14 @@ export async function updateUnit(businessId: string, unitId: string, input: Unit
 
 export async function softDeleteUnit(businessId: string, unitId: string) {
   const client = requireSupabase()
-  const { data, error } = await client
+  const { error } = await client
     .from('units')
     .update({ is_active: false, is_deleted: true })
     .eq('id', unitId)
     .eq('business_id', businessId)
     .eq('is_deleted', false)
-    .select('id')
-    .maybeSingle()
 
   if (error) {
     throw new Error(translateProductMasterError(error))
-  }
-  if (!data) {
-    throw new Error('ไม่พบหน่วยนับหรือคุณไม่มีสิทธิ์ลบ')
   }
 }

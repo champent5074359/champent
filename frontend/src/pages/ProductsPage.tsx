@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { CategoryManagerModal } from '../components/CategoryManagerModal'
 import { MasterDataManagerModal } from '../components/MasterDataManagerModal'
-import type { MasterDataKind } from '../components/MasterDataManagerModal'
 import { ProductFormModal } from '../components/ProductFormModal'
 import { useDashboardContext } from '../hooks/useDashboardContext'
 import {
@@ -38,7 +38,8 @@ export function ProductsPage() {
   const [success, setSuccess] = useState('')
   const [editingProduct, setEditingProduct] = useState<ProductRecord | null>(null)
   const [isProductFormOpen, setIsProductFormOpen] = useState(false)
-  const [managerKind, setManagerKind] = useState<MasterDataKind | null>(null)
+  const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false)
+  const [isUnitManagerOpen, setIsUnitManagerOpen] = useState(false)
   const canManage = workspace?.memberRole === 'owner' || workspace?.memberRole === 'manager'
 
   const refreshData = useCallback(async () => {
@@ -136,7 +137,6 @@ export function ProductsPage() {
     try {
       if (categoryId) await updateCategory(workspace.businessId, categoryId, input)
       else await createCategory(workspace.businessId, input)
-      setSuccess(categoryId ? 'แก้ไขหมวดหมู่เรียบร้อยแล้ว' : 'เพิ่มหมวดหมู่เรียบร้อยแล้ว')
       await refreshData()
     } finally {
       setIsSaving(false)
@@ -161,7 +161,6 @@ export function ProductsPage() {
     setIsSaving(true)
     try {
       await softDeleteCategory(workspace.businessId, category.id)
-      setSuccess('ลบหมวดหมู่เรียบร้อยแล้ว')
       await refreshData()
     } finally {
       setIsSaving(false)
@@ -215,12 +214,10 @@ export function ProductsPage() {
             {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
           </select>
         </label>
-        {canManage && (
-          <div className="master-buttons">
-            <button className="secondary-button" onClick={() => setManagerKind('category')} type="button">จัดการหมวดหมู่</button>
-            <button className="secondary-button" onClick={() => setManagerKind('unit')} type="button">จัดการหน่วยนับ</button>
-          </div>
-        )}
+        <div className="master-buttons">
+          <button className="secondary-button" onClick={() => setIsCategoryManagerOpen(true)} type="button">จัดการหมวดหมู่</button>
+          {canManage && <button className="secondary-button" onClick={() => setIsUnitManagerOpen(true)} type="button">จัดการหน่วยนับ</button>}
+        </div>
       </section>
 
       <section className="product-list-card">
@@ -265,12 +262,23 @@ export function ProductsPage() {
           units={units}
         />
       )}
-      {managerKind && (
+      {isCategoryManagerOpen && (
+        <CategoryManagerModal
+          canManage={canManage}
+          categories={categories}
+          isLoading={isLoading}
+          isSaving={isSaving}
+          onClose={() => setIsCategoryManagerOpen(false)}
+          onDelete={handleDeleteCategory}
+          onSave={handleSaveCategory}
+        />
+      )}
+      {isUnitManagerOpen && (
         <MasterDataManagerModal
           categories={categories}
           isSaving={isSaving}
-          kind={managerKind}
-          onClose={() => setManagerKind(null)}
+          kind="unit"
+          onClose={() => setIsUnitManagerOpen(false)}
           onDeleteCategory={handleDeleteCategory}
           onDeleteUnit={handleDeleteUnit}
           onSaveCategory={handleSaveCategory}
