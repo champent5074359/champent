@@ -117,3 +117,22 @@ The migration is intentionally not applied automatically. It must be reviewed an
 - Profiles include locale, preferred language, last-login, and last-seen timestamps.
 - Businesses include owner and contact details; branches support latitude and longitude.
 - Active-record unique indexes and RLS filters exclude soft-deleted rows while preserving the original membership and branch-access rules.
+
+## 10. Sprint 6C Product Management
+
+Product Management uses the existing `products`, `product_categories`, and `units` tables. No inventory, purchasing, sales, profit, image upload, or Loyverse workflow is introduced in this sprint.
+
+### Frontend responsibilities
+
+- `ProductsPage` owns the current workspace-scoped product list, client-side search, filters, sorting, success/error states, and manager actions.
+- `ProductFormModal` owns field validation and supports inline category/unit creation without closing or resetting the product form.
+- `productMaster` remains the only Supabase data-access boundary. Every normal read filters both `business_id` and `is_deleted = false`; updates also match the target row ID.
+- Empty SKU, barcode, description, category, and unit values are trimmed and persisted as `null` where appropriate.
+- Dashboard product totals use an exact count of non-deleted products for the active business.
+
+### Security and data integrity
+
+- Owner and manager permissions continue to be enforced by the deployed `can_manage_business` RLS policies. UI visibility is only an additional usability layer.
+- Staff retain SELECT-only behavior and do not receive product mutation controls.
+- Product removal is an audited UPDATE setting `is_deleted = true` and `is_active = false`; no DELETE policy or hard-delete client call is added.
+- Existing unique indexes enforce workspace-scoped SKU and Barcode uniqueness, while same-business triggers protect category and unit references.

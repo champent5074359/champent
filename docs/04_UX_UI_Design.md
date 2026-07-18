@@ -49,3 +49,23 @@ The interface should make daily business operations feel clear and fast for non-
 - Wireframes and clickable prototype
 - Full design system and component library
 - Accessibility audit and localization rules
+
+## 7. Sprint 6C Product Management Flow
+
+The Products screen keeps catalog maintenance in one responsive workspace:
+
+```text
+Products → Add product / Edit product
+  → check category and unit options
+  → create missing category or unit inline when needed
+  → automatically select the newly created master data
+  → validate product fields
+  → save and refresh the list
+```
+
+- The product form includes name, category, unit, SKU, barcode, description, cost price, selling price, stock-tracking preference, low-stock threshold, and active status.
+- Missing categories or units are explained inside the product form with direct creation actions; the product form stays open throughout this flow.
+- Search operates on the already-loaded product list by name, SKU, and barcode. Category, active status, and stock-tracking filters update immediately.
+- Product sorting supports name, newest first, and selling price in either direction.
+- Destructive actions require confirmation and use Soft Delete. Staff have a read-only catalog without create, edit, or delete actions.
+- On small screens, the product table becomes stacked cards and forms use a single-column layout without horizontal page overflow.
