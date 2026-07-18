@@ -1,29 +1,43 @@
+-- REVISION 004B - EXPLICIT MOVEMENT TYPE CONDITIONS
 -- BusinessOS Sprint 7A: branch-scoped inventory foundation.
 -- Review this migration before applying it in Supabase. It is not executed automatically.
 -- Sprint 7A supports only opening_balance, adjustment_in, adjustment_out, and
 -- stock_count. Purchase, sale, and transfer movements will be enabled in Sprint 8.
 
-create type public.inventory_movement_type as enum (
-  'opening_balance',
-  'adjustment_in',
-  'adjustment_out',
-  'purchase',
-  'sale',
-  'sale_return',
-  'purchase_return',
-  'transfer_in',
-  'transfer_out',
-  'stock_count'
-);
+-- Keep the migration atomic. A failure leaves no partially-created objects.
+begin;
+
+-- PostgreSQL has no CREATE TYPE IF NOT EXISTS for enum types. This guarded
+-- block makes reruns safe if a previous non-atomic attempt created the type.
+do $migration$
+begin
+  if to_regtype('public.inventory_movement_type') is null then
+    execute $enum$
+      create type public.inventory_movement_type as enum (
+        'opening_balance',
+        'adjustment_in',
+        'adjustment_out',
+        'purchase',
+        'sale',
+        'sale_return',
+        'purchase_return',
+        'transfer_in',
+        'transfer_out',
+        'stock_count'
+      )
+    $enum$;
+  end if;
+end;
+$migration$;
 
 -- Composite keys let branch-level inventory foreign keys prove that every
 -- referenced branch and product belongs to the stated business.
-create unique index branches_id_business_id_uidx
+create unique index if not exists branches_id_business_id_uidx
   on public.branches (id, business_id);
-create unique index products_id_business_id_uidx
+create unique index if not exists products_id_business_id_uidx
   on public.products (id, business_id);
 
-create table public.inventory_balances (
+create table if not exists public.inventory_balances (
   id uuid primary key default gen_random_uuid(),
   business_id uuid not null references public.businesses (id) on delete restrict,
   branch_id uuid not null,
@@ -58,17 +72,17 @@ create table public.inventory_balances (
     check (average_cost >= 0 and average_cost <> 'NaN'::numeric)
 );
 
-create unique index inventory_balances_unique_active
+create unique index if not exists inventory_balances_unique_active
   on public.inventory_balances (business_id, branch_id, product_id)
   where not is_deleted;
-create index inventory_balances_business_branch_idx
+create index if not exists inventory_balances_business_branch_idx
   on public.inventory_balances (business_id, branch_id)
   where not is_deleted;
-create index inventory_balances_business_product_idx
+create index if not exists inventory_balances_business_product_idx
   on public.inventory_balances (business_id, product_id)
   where not is_deleted;
 
-create table public.inventory_movements (
+create table if not exists public.inventory_movements (
   id uuid primary key default gen_random_uuid(),
   business_id uuid not null references public.businesses (id) on delete restrict,
   branch_id uuid not null,
@@ -121,13 +135,13 @@ create table public.inventory_movements (
     )
 );
 
-create index inventory_movements_business_branch_time_idx
+create index if not exists inventory_movements_business_branch_time_idx
   on public.inventory_movements (business_id, branch_id, occurred_at desc)
   where not is_deleted;
-create index inventory_movements_business_product_time_idx
+create index if not exists inventory_movements_business_product_time_idx
   on public.inventory_movements (business_id, product_id, occurred_at desc)
   where not is_deleted;
-create index inventory_movements_business_type_time_idx
+create index if not exists inventory_movements_business_type_time_idx
   on public.inventory_movements (business_id, movement_type, occurred_at desc)
   where not is_deleted;
 
@@ -185,11 +199,15 @@ begin
 end;
 $$;
 
+drop trigger if exists inventory_balances_validate_reference
+  on public.inventory_balances;
 create trigger inventory_balances_validate_reference
   before insert or update
   on public.inventory_balances
   for each row execute function private.validate_inventory_balance_reference();
 
+drop trigger if exists inventory_balances_set_audit_fields
+  on public.inventory_balances;
 create trigger inventory_balances_set_audit_fields
   before insert or update on public.inventory_balances
   for each row execute function public.set_audit_fields();
@@ -208,6 +226,8 @@ begin
 end;
 $$;
 
+drop trigger if exists inventory_movements_immutable
+  on public.inventory_movements;
 create trigger inventory_movements_immutable
   before update or delete on public.inventory_movements
   for each row execute function private.prevent_inventory_movement_mutation();
@@ -316,29 +336,29 @@ begin
       message = 'กรุณาระบุเหตุผล';
   end if;
 
-  if p_movement_type not in (
-    'opening_balance'::public.inventory_movement_type,
-    'adjustment_in'::public.inventory_movement_type,
-    'adjustment_out'::public.inventory_movement_type,
-    'stock_count'::public.inventory_movement_type
+  if not (
+    p_movement_type = 'opening_balance'::public.inventory_movement_type
+    or p_movement_type = 'adjustment_in'::public.inventory_movement_type
+    or p_movement_type = 'adjustment_out'::public.inventory_movement_type
+    or p_movement_type = 'stock_count'::public.inventory_movement_type
   ) then
     raise exception using
       errcode = 'P0001',
       message = 'ประเภทการเคลื่อนไหวสต๊อกยังไม่เปิดใช้งาน';
   end if;
 
-  if p_movement_type in (
-    'opening_balance'::public.inventory_movement_type,
-    'stock_count'::public.inventory_movement_type
+  if (
+    p_movement_type = 'opening_balance'::public.inventory_movement_type
+    or p_movement_type = 'stock_count'::public.inventory_movement_type
   ) and p_quantity < 0 then
     raise exception using
       errcode = 'P0001',
       message = 'จำนวนไม่ถูกต้อง';
   end if;
 
-  if p_movement_type in (
-    'adjustment_in'::public.inventory_movement_type,
-    'adjustment_out'::public.inventory_movement_type
+  if (
+    p_movement_type = 'adjustment_in'::public.inventory_movement_type
+    or p_movement_type = 'adjustment_out'::public.inventory_movement_type
   ) and p_quantity <= 0 then
     raise exception using
       errcode = 'P0001',
@@ -348,9 +368,9 @@ begin
   v_input_quantity := p_quantity;
 
   -- Reject positive values that round to zero at the supported 3 decimals.
-  if p_movement_type in (
-    'adjustment_in'::public.inventory_movement_type,
-    'adjustment_out'::public.inventory_movement_type
+  if (
+    p_movement_type = 'adjustment_in'::public.inventory_movement_type
+    or p_movement_type = 'adjustment_out'::public.inventory_movement_type
   ) and v_input_quantity <= 0 then
     raise exception using
       errcode = 'P0001',
@@ -523,6 +543,8 @@ $$;
 alter table public.inventory_balances enable row level security;
 alter table public.inventory_movements enable row level security;
 
+drop policy if exists "Authorized members can view inventory balances"
+  on public.inventory_balances;
 create policy "Authorized members can view inventory balances"
   on public.inventory_balances
   for select
@@ -533,6 +555,8 @@ create policy "Authorized members can view inventory balances"
     and public.has_branch_access(branch_id)
   );
 
+drop policy if exists "Authorized members can view inventory movements"
+  on public.inventory_movements;
 create policy "Authorized members can view inventory movements"
   on public.inventory_movements
   for select
@@ -595,3 +619,5 @@ grant execute on function public.adjust_inventory(
   text,
   text
 ) to authenticated;
+
+commit;
