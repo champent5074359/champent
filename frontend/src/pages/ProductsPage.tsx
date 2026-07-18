@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CategoryManagerModal } from '../components/CategoryManagerModal'
-import { MasterDataManagerModal } from '../components/MasterDataManagerModal'
 import { ProductFormModal } from '../components/ProductFormModal'
+import { UnitManagerModal } from '../components/UnitManagerModal'
 import { useDashboardContext } from '../hooks/useDashboardContext'
 import {
   createCategory,
+  createBasicUnits,
   createProduct,
   createUnit,
   loadProductMasterData,
@@ -149,7 +150,6 @@ export function ProductsPage() {
     try {
       if (unitId) await updateUnit(workspace.businessId, unitId, input)
       else await createUnit(workspace.businessId, input)
-      setSuccess(unitId ? 'แก้ไขหน่วยนับเรียบร้อยแล้ว' : 'เพิ่มหน่วยนับเรียบร้อยแล้ว')
       await refreshData()
     } finally {
       setIsSaving(false)
@@ -172,8 +172,19 @@ export function ProductsPage() {
     setIsSaving(true)
     try {
       await softDeleteUnit(workspace.businessId, unit.id)
-      setSuccess('ลบหน่วยนับเรียบร้อยแล้ว')
       await refreshData()
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  async function handleAddBasicUnits() {
+    if (!workspace?.businessId) throw new Error('ไม่พบธุรกิจปัจจุบัน')
+    setIsSaving(true)
+    try {
+      const createdCount = await createBasicUnits(workspace.businessId)
+      await refreshData()
+      return createdCount
     } finally {
       setIsSaving(false)
     }
@@ -274,15 +285,14 @@ export function ProductsPage() {
         />
       )}
       {isUnitManagerOpen && (
-        <MasterDataManagerModal
-          categories={categories}
+        <UnitManagerModal
+          canManage={canManage}
+          isLoading={isLoading}
           isSaving={isSaving}
-          kind="unit"
+          onAddBasicUnits={handleAddBasicUnits}
           onClose={() => setIsUnitManagerOpen(false)}
-          onDeleteCategory={handleDeleteCategory}
-          onDeleteUnit={handleDeleteUnit}
-          onSaveCategory={handleSaveCategory}
-          onSaveUnit={handleSaveUnit}
+          onDelete={handleDeleteUnit}
+          onSave={handleSaveUnit}
           units={units}
         />
       )}

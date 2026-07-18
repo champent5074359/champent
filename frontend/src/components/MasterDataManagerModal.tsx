@@ -75,7 +75,8 @@ export function MasterDataManagerModal(props: MasterDataManagerModalProps) {
         const category = categories.find((item) => item.id === editingId)
         await onSaveCategory({ description: secondary, isActive: category?.is_active ?? true, name, sortOrder }, editingId ?? undefined)
       } else {
-        await onSaveUnit({ abbreviation: secondary, name }, editingId ?? undefined)
+        const isActive = editingId ? units.find((unit) => unit.id === editingId)?.is_active ?? true : true
+        await onSaveUnit({ abbreviation: secondary, isActive, name }, editingId ?? undefined)
       }
       resetForm()
     } catch (caughtError) {

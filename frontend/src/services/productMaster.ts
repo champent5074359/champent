@@ -56,8 +56,22 @@ export type CategoryInput = {
 
 export type UnitInput = {
   abbreviation: string
+  isActive: boolean
   name: string
 }
+
+export const BASIC_PRODUCT_UNITS: ReadonlyArray<Pick<UnitInput, 'abbreviation' | 'name'>> = [
+  { abbreviation: 'ชิ้น', name: 'ชิ้น' },
+  { abbreviation: 'กล่อง', name: 'กล่อง' },
+  { abbreviation: 'ถุง', name: 'ถุง' },
+  { abbreviation: 'ขวด', name: 'ขวด' },
+  { abbreviation: 'ชุด', name: 'ชุด' },
+  { abbreviation: 'แพ็ค', name: 'แพ็ค' },
+  { abbreviation: 'ก.', name: 'กรัม' },
+  { abbreviation: 'กก.', name: 'กิโลกรัม' },
+  { abbreviation: 'ล.', name: 'ลิตร' },
+  { abbreviation: 'มล.', name: 'มิลลิลิตร' },
+]
 
 type ProductMasterData = {
   categories: ProductCategory[]
@@ -125,7 +139,7 @@ export function translateProductMasterError(error: unknown) {
   }
 
   if (combined.includes('product unit is still referenced by active products')) {
-    return 'หน่วยนับนี้ยังมีสินค้าใช้งานอยู่ กรุณาย้ายสินค้าก่อนลบ'
+    return 'หน่วยนับนี้ยังมีสินค้าใช้งานอยู่ กรุณาย้ายสินค้าไปใช้หน่วยนับอื่นก่อนลบ'
   }
 
   if (candidate.code === '23514') {
@@ -315,6 +329,7 @@ export async function createUnit(businessId: string, input: UnitInput) {
   const { error } = await client.from('units').insert({
     abbreviation: cleanOptional(input.abbreviation),
     business_id: businessId,
+    is_active: input.isActive,
     name: input.name.trim(),
   })
 
@@ -327,7 +342,11 @@ export async function updateUnit(businessId: string, unitId: string, input: Unit
   const client = requireSupabase()
   const { data, error } = await client
     .from('units')
-    .update({ abbreviation: cleanOptional(input.abbreviation), name: input.name.trim() })
+    .update({
+      abbreviation: cleanOptional(input.abbreviation),
+      is_active: input.isActive,
+      name: input.name.trim(),
+    })
     .eq('id', unitId)
     .eq('business_id', businessId)
     .eq('is_deleted', false)
@@ -354,4 +373,39 @@ export async function softDeleteUnit(businessId: string, unitId: string) {
   if (error) {
     throw new Error(translateProductMasterError(error))
   }
+}
+
+export async function createBasicUnits(businessId: string) {
+  const client = requireSupabase()
+  const { data, error: loadError } = await client
+    .from('units')
+    .select('name')
+    .eq('business_id', businessId)
+    .eq('is_deleted', false)
+
+  if (loadError) {
+    throw new Error(translateProductMasterError(loadError))
+  }
+
+  const existingNames = new Set((data ?? []).map((unit) => unit.name.trim().toLocaleLowerCase('th')))
+  const missingUnits = BASIC_PRODUCT_UNITS.filter((unit) => (
+    !existingNames.has(unit.name.toLocaleLowerCase('th'))
+  ))
+
+  if (missingUnits.length === 0) {
+    return 0
+  }
+
+  const { error: insertError } = await client.from('units').insert(missingUnits.map((unit) => ({
+    abbreviation: unit.abbreviation,
+    business_id: businessId,
+    is_active: true,
+    name: unit.name,
+  })))
+
+  if (insertError) {
+    throw new Error(translateProductMasterError(insertError))
+  }
+
+  return missingUnits.length
 }
