@@ -13,11 +13,18 @@ export type InventoryBranch = {
   name: string
 }
 
+export type InventoryCategory = {
+  id: string
+  name: string
+}
+
 export type InventoryItem = {
   available_quantity: number
   branch_code: string
   branch_id: string
   branch_name: string
+  category_id: string | null
+  category_name: string | null
   is_product_active: boolean
   last_movement_at: string | null
   low_stock_threshold: number
@@ -46,6 +53,7 @@ export type InventoryMovement = {
 
 export type InventoryData = {
   branches: InventoryBranch[]
+  categories: InventoryCategory[]
   items: InventoryItem[]
   movements: InventoryMovement[]
 }
@@ -105,7 +113,7 @@ export function translateInventoryError(error: unknown) {
 
 export async function loadInventoryData(businessId: string): Promise<InventoryData> {
   const client = requireSupabase()
-  const [branchResult, unitResult, productResult, balanceResult, movementResult] = await Promise.all([
+  const [branchResult, categoryResult, unitResult, productResult, balanceResult, movementResult] = await Promise.all([
     client
       .from('branches')
       .select('id, name, code, is_headquarters')
@@ -115,13 +123,19 @@ export async function loadInventoryData(businessId: string): Promise<InventoryDa
       .order('is_headquarters', { ascending: false })
       .order('name', { ascending: true }),
     client
+      .from('product_categories')
+      .select('id, name')
+      .eq('business_id', businessId)
+      .eq('is_deleted', false)
+      .order('name', { ascending: true }),
+    client
       .from('units')
       .select('id, name, abbreviation')
       .eq('business_id', businessId)
       .eq('is_deleted', false),
     client
       .from('products')
-      .select('id, unit_id, name, sku, low_stock_threshold, is_active')
+      .select('id, category_id, unit_id, name, sku, low_stock_threshold, is_active')
       .eq('business_id', businessId)
       .eq('track_stock', true)
       .eq('is_deleted', false)
@@ -141,6 +155,7 @@ export async function loadInventoryData(businessId: string): Promise<InventoryDa
   ])
 
   const firstError = branchResult.error
+    ?? categoryResult.error
     ?? unitResult.error
     ?? productResult.error
     ?? balanceResult.error
@@ -151,10 +166,12 @@ export async function loadInventoryData(businessId: string): Promise<InventoryDa
   }
 
   const branches = (branchResult.data ?? []) as InventoryBranch[]
+  const categories = (categoryResult.data ?? []) as InventoryCategory[]
   const units = unitResult.data ?? []
   const products = productResult.data ?? []
   const balances = balanceResult.data ?? []
   const unitMap = new Map(units.map((unit) => [unit.id, unit]))
+  const categoryMap = new Map(categories.map((category) => [category.id, category.name]))
   const productMap = new Map(products.map((product) => [product.id, product.name]))
   const branchMap = new Map(branches.map((branch) => [branch.id, branch.name]))
   const balanceMap = new Map(balances.map((balance) => [
@@ -173,6 +190,8 @@ export async function loadInventoryData(businessId: string): Promise<InventoryDa
       branch_code: branch.code,
       branch_id: branch.id,
       branch_name: branch.name,
+      category_id: product.category_id,
+      category_name: product.category_id ? categoryMap.get(product.category_id) ?? null : null,
       is_product_active: product.is_active,
       last_movement_at: balance?.last_movement_at ?? null,
       low_stock_threshold: toNumber(product.low_stock_threshold),
@@ -200,7 +219,7 @@ export async function loadInventoryData(businessId: string): Promise<InventoryDa
     reason: movement.reason,
   }))
 
-  return { branches, items, movements }
+  return { branches, categories, items, movements }
 }
 
 export async function adjustInventory(input: InventoryAdjustmentInput) {
