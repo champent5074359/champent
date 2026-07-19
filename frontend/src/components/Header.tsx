@@ -14,6 +14,9 @@ export function Header() {
   const fullName = data?.userName || metadataName || user?.email || 'ผู้ใช้งาน'
   const initials = fullName.slice(0, 2).toUpperCase()
   const isProductsPage = location.pathname === '/products'
+  const isInventoryPage = location.pathname === '/inventory'
+  const pageEyebrow = isProductsPage ? 'ข้อมูลหลัก' : isInventoryPage ? 'คลังสินค้า' : 'ภาพรวม'
+  const pageTitle = isProductsPage ? 'สินค้า' : isInventoryPage ? 'สต๊อกสินค้า' : 'แดชบอร์ด'
 
   async function handleSignOut() {
     setSignOutError('')
@@ -29,8 +32,8 @@ export function Header() {
   return (
     <header className="header">
       <div>
-        <p className="eyebrow">{isProductsPage ? 'ข้อมูลหลัก' : 'ภาพรวม'}</p>
-        <h1>{isProductsPage ? 'สินค้า' : 'แดชบอร์ด'}</h1>
+        <p className="eyebrow">{pageEyebrow}</p>
+        <h1>{pageTitle}</h1>
       </div>
       <div className="header-actions">
         <button className="branch-switcher" type="button" aria-label="Change active branch">

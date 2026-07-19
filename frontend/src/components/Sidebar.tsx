@@ -5,7 +5,7 @@ const navigation = [
   { available: true, label: 'แดชบอร์ด', icon: '▦', to: '/dashboard' },
   { available: false, label: 'การขาย', icon: '↗', to: '' },
   { available: true, label: 'สินค้า', icon: '□', to: '/products' },
-  { available: false, label: 'สต๊อก', icon: '▤', to: '' },
+  { available: true, label: 'สต๊อก', icon: '▤', to: '/inventory' },
   { available: false, label: 'การซื้อ', icon: '▣', to: '' },
   { available: false, label: 'การเงิน', icon: '◫', to: '' },
 ]

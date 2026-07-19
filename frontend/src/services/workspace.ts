@@ -10,6 +10,7 @@ export type BusinessType =
   | 'other'
 
 export type DashboardContext = {
+  branchId: string
   branchName: string
   businessId: string
   businessName: string
@@ -126,6 +127,7 @@ export async function getDashboardContext(profileId: string): Promise<DashboardC
   }
 
   return {
+    branchId: branchMembership.branch_id,
     branchName: branch.name,
     businessId: membership.business_id,
     businessName: business.name,

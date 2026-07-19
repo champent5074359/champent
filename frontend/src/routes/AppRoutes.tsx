@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { DashboardLayout } from '../layouts/DashboardLayout'
 import { DashboardPage } from '../pages/DashboardPage'
 import { LoginPage } from '../pages/LoginPage'
+import { InventoryPage } from '../pages/InventoryPage'
 import { OnboardingPage } from '../pages/OnboardingPage'
 import { ProductsPage } from '../pages/ProductsPage'
 import { SignUpPage } from '../pages/SignUpPage'
@@ -28,6 +29,7 @@ export function AppRoutes() {
         <Route element={<DashboardLayout />}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/products" element={<ProductsPage />} />
+          <Route path="/inventory" element={<InventoryPage />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />
